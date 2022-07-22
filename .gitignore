@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.DS_Store
+
+# handy symlink on HAL's machine for linking to the HOOT data
+data
