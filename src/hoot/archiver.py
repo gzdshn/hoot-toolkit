@@ -8,7 +8,7 @@ import json
 import pickle
 import re
 import os
-from src.hoot.anno import load_video_from_file
+from src.hoot.anno import load_video_from_file, OcclusionMasks, OcclusionTags, MotionTags
 
 from src.utils import package_folder, validate_class_name, PackageInfo
 from src.hoot.metadata import HootDataset, TargetClass, AnnotatedFrameSet, OcclusionLevels
@@ -130,24 +130,24 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
             video_tags = set()
             for frame in video_data.frames:
                 if type(frame.occ_masks.s) != list:
-                    video_tags.add('solid')
+                    video_tags.add(OcclusionTags.solid)
                 if type(frame.occ_masks.sp) != list:
-                    video_tags.add('sparse')
+                    video_tags.add(OcclusionTags.sparse)
                 if type(frame.occ_masks.st) != list:
-                    video_tags.add('semi_transparent')
+                    video_tags.add(OcclusionTags.semi_transparent)
                 if type(frame.occ_masks.t) != list:
-                    video_tags.add('transparent')
+                    video_tags.add(OcclusionTags.transparent)
 
                 if frame.attributes.absent:
-                    video_tags.add('absent')
+                    video_tags.add(OcclusionTags.absent)
                 if frame.attributes.full_occlusion:
-                    video_tags.add('full_occlusion')
+                    video_tags.add(OcclusionTags.full_occlusion)
                 if frame.attributes.similar_occluder:
-                    video_tags.add('similar_occluder')
+                    video_tags.add(OcclusionTags.similar_occluder)
                 if frame.attributes.cut_by_frame:
-                    video_tags.add('cut_by_frame')
+                    video_tags.add(OcclusionTags.cut_by_frame)
                 if frame.attributes.partial_obj_occlusion:
-                    video_tags.add('partial_obj_occlusion')
+                    video_tags.add(OcclusionTags.partial_obj_occlusion)
 
             target_class.videos.append(AnnotatedFrameSet(
                 id=f_id,

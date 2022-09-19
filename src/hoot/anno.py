@@ -2,6 +2,29 @@ import json
 from dataclasses import dataclass, field
 from dacite import from_dict
 from typing import List, Union
+from types import SimpleNamespace
+
+class OcclusionTags(SimpleNamespace):
+    solid = "solid"
+    sparse = "sparse"
+    semi_transparent = "semi_transparent"
+    transparent = "transparent"
+    absent = "absent"
+    full_occlusion = "full_occlusion"
+    similar_occluder = "similar_occluder"
+    cut_by_frame = "cut_by_frame"
+    partial_obj_occlusion = "partial_obj_occlusion"
+
+class MotionTags(SimpleNamespace):
+    blur = "blur"
+    moving_occluder = "moving_occluder"
+    parallax = "parallax"
+    dynamic_camera_motion = "dynamic_camera_motion"
+
+class TargetTags(SimpleNamespace):
+    deformable = "deformable"
+    self_propelled = "self_propelled"
+    animate = "animate"
 
 
 @dataclass
