@@ -28,3 +28,8 @@
    ```sh
    hoot make-archive --help
    ```
+
+## Example make-archive
+   ```sh
+   hoot make-archive --dir data/hoot_v1 --dest data/hoot_v1_export --version 1.0 --clean=True
+   ```
