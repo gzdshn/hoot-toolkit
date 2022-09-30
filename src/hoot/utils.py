@@ -40,8 +40,9 @@ def package_folder(id: str, directory: Path, zip_output: Path, allowed_file_type
     data_zip = zipfile.ZipFile(zip_output, mode='w')
 
     for root, dirs, files in os.walk(directory, topdown=True, followlinks=False):
-        for name in files:
-            print(os.path.splitext(name), allowed_file_types)
+        #breakpoint()
+        for name in sorted(files):
+            #print(os.path.splitext(name), allowed_file_types)
             if os.path.splitext(name)[1] not in allowed_file_types:
                 continue
 
@@ -57,6 +58,6 @@ def package_folder(id: str, directory: Path, zip_output: Path, allowed_file_type
                     zip_stream.write(chunk)
 
             # print(os.path.join(root, name))
-            break #TODO: returning after 1 file for quick testing
+            #break #TODO: returning after 1 file for quick testing
 
     return PackageInfo(id, data_size, data_hash.hexdigest(), zip_output)

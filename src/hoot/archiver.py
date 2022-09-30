@@ -8,12 +8,12 @@ import json
 import pickle
 import re
 import os
-from src.hoot.anno import load_video_from_file, OcclusionMasks, OcclusionTags, MotionTags
+from hoot.anno import load_video_from_file, OcclusionMasks, OcclusionTags, MotionTags
 
-from src.utils import package_folder, validate_class_name, PackageInfo
-from src.hoot.metadata import HootDataset, TargetClass, AnnotatedFrameSet, OcclusionLevels
+from hoot.utils import package_folder, validate_class_name, PackageInfo
+from hoot.metadata import HootDataset, TargetClass, AnnotatedFrameSet, OcclusionLevels
 
-allowed_file_types = {'.png', '.json', '.txt'}
+allowed_file_types = {'.png', '.json', '.txt', '.info'}
 
 class ArchiveArgs(NamedTuple):
     id: str
@@ -38,7 +38,7 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
         zip operation. To accomplish this, make_archive will write a 'result_cache'
         file to the destination/*class folder for each video:
 
-        eg .hoot.001.e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.1827573571861812
+        eg .hoot.apple.001.e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.1827573571861812
                  id                                   sha265                          original_size
 
         Once all the zips and result_caches are built, make_archive will assemble all the metadata
@@ -47,7 +47,7 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
     # handle directories
     dir = Path(directory)
     dest = Path(destination)
-
+    #breakpoint()
     if dest.exists() and clean:
         shutil.rmtree(dest)
         dest.mkdir()
@@ -57,11 +57,16 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
 
     # copy any files in the root directory (LICENSE.txt, train.txt, test.txt)
     hoot_files = [f for f in sorted(dir.iterdir()) if f.is_file()]
+    test_video_keys = set()
     for f in hoot_files:
         if f.name.endswith('.txt') == False:
             continue
         # print(f, dest.joinpath(f.name))
         shutil.copy(f, dest.joinpath(f.name))
+        if f.name == "test.txt":
+            with open(f, "r") as fr:
+                test_video_keys = set([k.strip() for k in fr.readlines()])
+    assert len(test_video_keys) != 0
 
     # assemble all class directories
     class_directories = [d for d in sorted(dir.iterdir()) if d.is_dir()]
@@ -70,27 +75,26 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
     for class_dir in class_directories:
         assert validate_class_name(class_dir.name)
         dest_class_dir = dest.joinpath(class_dir.name)
-        dest_class_dir.mkdir(exist_ok=False)
+        dest_class_dir.mkdir(exist_ok=True)
 
-        
-        in_test = False
         frame_sets = [d for d in sorted(class_dir.iterdir()) if d.is_dir()]
         frame_set_caches = [c for c in sorted(class_dir.iterdir()) if c.name.startswith(f'.hoot.')]
-        
+        print(frame_set_caches)
         for frame_set in tqdm(frame_sets, desc='zipping videos'):
             
             #check frame_set_caches
             has_cache = False
             for c in frame_set_caches:
-                if c.name.startswith(f'.hoot.{frame_set.name}'):
+                if c.name.startswith(f'.hoot.{class_dir.name}.{frame_set.name}'):
                     has_cache = True
+                    print(f'found cache file: {clean} {c}')
                     break
             if has_cache and clean == False:
                 continue
             
             # zip package and write hidden '.hoot.*...' result cache file
             result = package_folder(frame_set.name, frame_set, dest_class_dir.joinpath(f'{frame_set.name}.zip'), allowed_file_types)
-            dest_class_dir.joinpath(f'.hoot.{frame_set.name}.{result.sha256}.{result.original_size}').touch()
+            dest_class_dir.joinpath(f'.hoot.{class_dir.name}.{frame_set.name}.{result.sha256}.{result.original_size}').touch()
 
 
 
@@ -103,55 +107,35 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
     for class_dir in class_directories:
         target_class = TargetClass(class_dir.name)
         dataset.classes.append(target_class)
+        dest_class_dir = dest.joinpath(class_dir.name)
 
         frame_sets = [d for d in sorted(class_dir.iterdir()) if d.is_dir()]
-        frame_set_caches = [c for c in sorted(dest_class_dir.iterdir()) if c.name.startswith(f'.hoot.')]
+        frame_set_caches = [c for c in sorted(dest_class_dir.iterdir()) if c.name.startswith(f'.hoot.{class_dir.name}.')]
         for frame_set in tqdm(frame_sets, desc='parsing anno.json'):  # TODO: could be multi-processed
             #fetch result cache
             result_cache = None
             for c in frame_set_caches:
-                if c.name.startswith(f'.hoot.{frame_set.name}'):
+                if c.name.startswith(f'.hoot.{class_dir.name}.{frame_set.name}'):
                     result_cache = c
                     break
-            assert result_cache is not None, f'no result exists for frame_set {frame_set}'
+            assert result_cache is not None, f'no result exists for frame_set {frame_set}' + f'\n{frame_set_caches}'
             
             #parse result cache - read id, sha256, size, zip_size
-            match_result = re.match(r'\.hoot\.(.+)\.([0-9a-f]{64})\.(\d+)', result_cache.name)
+            match_result = re.match(r'\.hoot\..+\.(\d+)\.([0-9a-f]{64})\.(\d+)', result_cache.name)
             assert match_result is not None
             zip_path = dest_class_dir.joinpath(f'{frame_set.name}.zip')
             f_id = match_result.group(1)
             f_sha256 = match_result.group(2)
-            f_size = match_result.group(3)
+            f_size = int(match_result.group(3))
             f_zip_size = os.path.getsize(zip_path)
 
             # read anno.json
-            frame_set_anno = frame_set.joinpath('anno.json')
-            video_data = load_video_from_file(frame_set_anno)
-            video_tags = set()
-            for frame in video_data.frames:
-                if type(frame.occ_masks.s) != list:
-                    video_tags.add(OcclusionTags.solid)
-                if type(frame.occ_masks.sp) != list:
-                    video_tags.add(OcclusionTags.sparse)
-                if type(frame.occ_masks.st) != list:
-                    video_tags.add(OcclusionTags.semi_transparent)
-                if type(frame.occ_masks.t) != list:
-                    video_tags.add(OcclusionTags.transparent)
-
-                if frame.attributes.absent:
-                    video_tags.add(OcclusionTags.absent)
-                if frame.attributes.full_occlusion:
-                    video_tags.add(OcclusionTags.full_occlusion)
-                if frame.attributes.similar_occluder:
-                    video_tags.add(OcclusionTags.similar_occluder)
-                if frame.attributes.cut_by_frame:
-                    video_tags.add(OcclusionTags.cut_by_frame)
-                if frame.attributes.partial_obj_occlusion:
-                    video_tags.add(OcclusionTags.partial_obj_occlusion)
+            in_test = class_dir.name + "-" + frame_set.name in test_video_keys
+            video_data = load_video_from_file(frame_set, in_test=in_test)
 
             target_class.videos.append(AnnotatedFrameSet(
                 id=f_id,
-                url=f'/{class_dir.name}/{zip_path.name}',
+                path=f'{class_dir.name}/{zip_path.name}',
                 sha256=f_sha256,
                 download_size=f_zip_size,
                 install_size=f_size,
@@ -161,7 +145,7 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
                     video_data.mean_target_occlusion_level,
                     video_data.median_target_occlusion_level
                 ),
-                tags=list(video_tags)
+                tags=video_data.occlusion_tags
             ))
     
 

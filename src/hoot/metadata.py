@@ -1,6 +1,7 @@
 import dataclasses
 from typing import List, MutableSet, Dict
 import datetime
+from dacite import from_dict
 
 @dataclasses.dataclass
 class OcclusionLevels:
@@ -13,8 +14,8 @@ class OcclusionLevels:
 @dataclasses.dataclass
 class AnnotatedFrameSet:
     '''Represents a video broken down into frames along with annotation-data and metadata'''
-    id: int
-    url: str
+    id: str
+    path: str
     sha256: str
     download_size: int   #bytes (64-bit minimum)
     install_size: int    #bytes (64-bit minimum)
@@ -35,4 +36,12 @@ class HootDataset:
     version: str
     change_log: str
     date_created: datetime.date=dataclasses.field(default_factory=lambda: datetime.date.today())
+    additional_files: List[str]=dataclasses.field(default_factory=list)
     classes: List[TargetClass]=dataclasses.field(default_factory=list)
+
+import json
+import datetime
+def load_from_json(metadata_dict: dict) -> HootDataset:
+    metadata_dict['date_created'] = datetime.datetime.strptime(metadata_dict['date_created'], '%Y-%m-%d').date()
+    metadata = from_dict(data_class=HootDataset, data=metadata_dict)
+    return metadata
