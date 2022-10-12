@@ -1,19 +1,19 @@
-### Installation
+## Installation
 
 1. Clone the repo from github
    ```sh
    git clone https://github.com/gzdshn/hoot-toolkit.git
-   ```
-2. Create a virtual environment in the root of the cloned directory
-   ```sh
    cd hoot-toolkit
-   python3 -m venv .venv
+   ```
+2. Create a conda environment using the given environment
+   ```sh
+   conda env create -f environment.yml
    ```
 3. Enter the virtual environment
    ```sh
-   source .venv/bin/activate
+   conda activate hoot-toolkit
    ```
-4. Install the hoot-toolkit CLI and dependancies
+4. Install the hoot-toolkit CLI
    ```sh
    pip install -e ./
    ```
@@ -26,10 +26,40 @@
    ```
 2. View help for a subcommand
    ```sh
-   hoot make-archive --help
+   hoot download --help
    ```
 
-## Example make-archive
+## Downloading HOOT
+   
    ```sh
-   hoot make-archive --dir data/hoot_v1 --dest data/hoot_v1_export --version 1.0 --clean=True
+   hoot download --dest /path/to/hoot 
+                 --test-only        ## downloads only test split
+                 --clean            ## overwrites already downloaded zips
+                 --extract          ## extracts zips after download
+                 --remove-archives  ## deletes the zip file after extraction to clean up space
    ```
+
+To download any specific subset of HOOT that includes specific properties (e.g. only videos with semi-transparent occluders), consider writing a quick filter (check `src/hoot/downloader.py:87`) to do so before you run the above command. 
+
+## Visualize HOOT
+   
+   ```sh
+   hoot visualize --dir /path/to/hoot 
+                  --dest /visuals/output/path  ## to save visualization images
+                  --video apple-003 ## to visualize a specific video 
+   ```
+
+To download any specific subset of HOOT that includes specific properties (e.g. only videos with semi-transparent occluders), consider writing a quick filter (check `src/hoot/downloader.py:87`) to do so before you run the above command.
+
+## Usage of make-archive
+   
+`make-archive` is a tool we have used to package HOOT data in individual video zips for distribution. It parses the local data folder and creates zips for each video under each object class, while writing a `metadata.json` that holds information like video id, download file size, split, tags, etc. This `metadata.json` file is then used in the downloader. An example on how to use the make-archive tool is below:
+
+   ```sh
+   hoot make-archive --dir data/hoot_v1 
+                     --dest data/hoot_v1_export 
+                     --version 1.0 
+                     --clean=True
+   ```
+
+While you won't need `make-archive` for using HOOT, if you have a dataset you would like to distribute this way, please feel free to use the archiver and downloader tools from this repo. If you do, please link to `hoot-toolkit` as acknowledgement.

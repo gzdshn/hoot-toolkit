@@ -43,10 +43,11 @@ class TargetTags(SimpleNamespace):
 ## Provides a property to return the decoded binary mask
 @dataclass
 class Mask:
-    '''TODO: DOCUMENTATION'''
     size: List[int]
     counts: str
 
+    ## Function that converts mask counts to bytes and decodes it
+    ## Returns a binary 2D array
     @property
     def mask(self) -> np.ndarray:
         counts_bytes = bytes.fromhex(self.counts)
@@ -59,13 +60,14 @@ class Mask:
 OptionalMask = Union[List, Mask]
 @dataclass
 class OcclusionMasks:
-    '''TODO: DOCUMENTATION'''
     all: OptionalMask=field(default_factory=list)
     s: OptionalMask=field(default_factory=list)
     sp: OptionalMask=field(default_factory=list)
     st: OptionalMask=field(default_factory=list)
     t: OptionalMask=field(default_factory=list)
 
+    ## Function to iterate through occlusion masks for the frame
+    ## Iterates a given occlusion types list or all types
     def get_masks(self, occ_types: Optional[List[str]]=None):
         if occ_types is None:
             occ_types = ["all", "s", "sp", "st", "t"]
@@ -87,18 +89,18 @@ class OcclusionMasks:
 ## Frame Attributes class which holds frame-level occlusion attributes 
 @dataclass
 class FrameAttributes:
-    '''TODO: DOCUMENTATION'''
     absent: bool
     full_occlusion: bool
     similar_occluder: bool
     cut_by_frame: bool
     partial_obj_occlusion: bool
 
+## Definition of rotated and axis-aligned bounding box object types
 RotatedBoundingBox = List[List[float]]
 AxisAlignedBoundingBox = List[List[float]]
+## Frame class that holds frame id, path and other annotations
 @dataclass
 class Frame:
-    '''TODO: DOCUMENTATION'''
     frame_id: int
     frame_path: str ## "path/to/hoot/class/video/padded_frame_id.png"
     rot_bb: RotatedBoundingBox
@@ -106,9 +108,20 @@ class Frame:
     occ_masks: OcclusionMasks
     attributes: FrameAttributes
 
+    ## Function to compute an x,y,w,h style box from aa_bb (polygon points)
+    @property
+    def to_xywh(self) -> List[float]:
+        min_x = min([pt[0] for pt in self.aa_bb])
+        min_y = min([pt[1] for pt in self.aa_bb])
+        max_x = max([pt[0] for pt in self.aa_bb])
+        max_y = max([pt[1] for pt in self.aa_bb])
+        w = max_x - min_x
+        h = max_y - min_y
+        return [min_x, min_y, w, h]
+
+## Video class that hold video key, path and a list of frame objects, as well as other video data
 @dataclass
 class Video:
-    '''TODO: DOCUMENTATION'''
     video_key: str
     video_path: str
     frames: List[Frame]
@@ -121,9 +134,12 @@ class Video:
     motion_tags: List[str]
     target_tags: List[str]
     
+    ## Makes sure frames are sorted by id - in case json read/write messed it up
     def __post_init__(self):
         self.frames.sort(key=lambda f: f.frame_id)
 
+    ## Computes video-level occlusion tags from frame tags
+    ## e.g. if any frame is video has solid occluder, it gets added to video tags
     @property
     def occlusion_tags(self) -> List[str]:
         video_tags = set()
@@ -149,16 +165,16 @@ class Video:
                 video_tags.add(OcclusionTags.partial_obj_occlusion)
         return list(video_tags)
 
-
+## Loads video annotations for HOOT
 def load_video_from_file(videopath: Path, in_test=None, annopath=None, metapath=None) -> Video:
-    '''TODO: DOCUMENTATION'''
+    ## If not given specifically, load anno.json/meta.info from default path
     if annopath is None:
         annopath = videopath.joinpath('anno.json')
         assert annopath.exists()
     if metapath is None:
         metapath = videopath.joinpath('meta.info')
         assert metapath.exists()
-    print(annopath)
+
     # Edit annotation dict to add path and test video info
     with open(annopath, 'r') as f:
         anno_data = json.load(f)
@@ -181,6 +197,7 @@ def load_video_from_file(videopath: Path, in_test=None, annopath=None, metapath=
     video = from_dict(data_class=Video, data=anno_data)
     return video
 
+## Loads video-level tags like motion and target tags from the meta.info
 def load_tags_from_metadata(meta_data) -> Tuple[List[str], List[str]]:
     motion_tags = []
     target_tags = []

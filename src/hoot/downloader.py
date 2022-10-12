@@ -1,9 +1,9 @@
 
-# full datasets are broken into different versions and image_qualities
+# Full datasets are broken into different versions and image_qualities
 # Each combination is given a separate URL
 # eg.   version = 1.0, 1.1, 1.2, 2.0
-#       image_quality = HD, HD
-#       host_url = https://data.hootbenchmark.org/v1_1/HD/, https://downloads.host.com/v2_0/UHD/
+#       image_quality = HD, UHD
+#       host_url = https://data.hootbenchmark.org/HOOT_v1/HD/
 
 import requests
 import json
@@ -16,6 +16,7 @@ import shutil
 from hoot.metadata import load_from_json
 from typing import List
 
+## Downloader class 
 class Downloader:
     def __init__(self, host_url: str) -> None:
         self.host_url = host_url
@@ -62,16 +63,16 @@ class Downloader:
                 fw.write(response.text)
 
 def download_archives(destination: Path, extract: bool=False, clean: bool=False, test_only: bool=False, remove_archives: bool=False):
-    #create dest dir if it doesn't already exist
+    ## Create dest dir if it doesn't already exist
     dest = Path(destination)
     dest.mkdir(exist_ok=True)
 
     host_url = 'http://localhost:8080/'
     dl = Downloader(host_url)
-    #fetch the latest metadata
+    ## Fetch the latest metadata
     metadata = load_from_json(dl.download_metadata())
 
-    ## download license, test.txt, train.txt
+    ## Download license, test.txt, train.txt
     dl.download_additional_files(metadata.additional_files, dest)
 
     ## Collect videos to download
@@ -80,29 +81,34 @@ def download_archives(destination: Path, extract: bool=False, clean: bool=False,
         class_dir = dest.joinpath(c.name)
         class_dir.mkdir(exist_ok=True)
         for v in c.videos:
-            if test_only: ## doesn't support flags
+            if test_only:
                 if v.test_split:
                     to_download.append([class_dir, v])
             else:
                 ## ADD ANY DOWNLOAD FILTERS HERE ##
-                ## Use v['tags] and v['occlusion_levels']
-                ## Only videos with solid occ, similar occ. etc... 
+                ## Use v.occlusion_tags, v.frame_occlusion_level etc.
+                ## Filter downloaded videos with an if statement like:
+                ## if "solid" in v.occlusion_tags:
                 to_download.append([class_dir, v])
 
     ## Download videos
+    ## If clean is set, the video is skipped if it's already downloaded
     for class_dir, v in tqdm(to_download, desc = "Downloading videos..."):
         dl.download_url(v.path, class_dir, v.download_size, clean)
     
     ## Extract zip archives
     if extract:
         for class_dir, v in tqdm(to_download, desc = "Extracting zip files..."):
+            ## Setup paths
             v_zip_path = v.path
             zip_path = dest.joinpath(v_zip_path)
-            # breakpoint()
             v_folder = class_dir.joinpath(v.id)
             v_folder.mkdir(exist_ok=True)
+            
+            ## Extract zip
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(v_folder)
 
+            ## If remove_archives is set, delete the zip file from the class folder
             if remove_archives and os.path.isfile(zip_path):
                 os.remove(zip_path)

@@ -38,8 +38,8 @@ from hoot.visualizer import visualize_videos
 
 @cli.command(name='visualize')
 @click.option('--directory', '--dir', type=click.Path(), prompt='Hoot Directory')
-@click.option('--output', '--dest', type=click.Path(), default=None, prompt='Destination directory')
-@click.option('--video', type=str, default=None, prompt='Video key to visualize, e.g. cup-001')
+@click.option('--output', '--dest', type=click.Path(), default=None)
+@click.option('--video', type=str, default=None)
 def launch_visualizer(directory: str, output: Optional[str], video: Optional[str]):
     visualize_videos(directory, output, video)           
 

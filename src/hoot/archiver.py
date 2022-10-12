@@ -11,7 +11,7 @@ import os
 from hoot.anno import load_video_from_file, OcclusionMasks, OcclusionTags, MotionTags
 
 from hoot.utils import package_folder, validate_class_name, PackageInfo
-from hoot.metadata import HootDataset, TargetClass, AnnotatedFrameSet, OcclusionLevels
+from hoot.metadata import HootDataset, TargetClass, AnnotatedVideo, OcclusionLevels
 
 allowed_file_types = {'.png', '.json', '.txt', '.info'}
 
@@ -133,7 +133,7 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
             in_test = class_dir.name + "-" + frame_set.name in test_video_keys
             video_data = load_video_from_file(frame_set, in_test=in_test)
 
-            target_class.videos.append(AnnotatedFrameSet(
+            target_class.videos.append(AnnotatedVideo(
                 id=f_id,
                 path=f'{class_dir.name}/{zip_path.name}',
                 sha256=f_sha256,
