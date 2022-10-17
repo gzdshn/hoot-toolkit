@@ -23,15 +23,17 @@ def launch_make_archive(directory: str, destination: str, version: str, threads:
 
 ## 'hoot download' CLI command
 from hoot.downloader import download_archives
+RELEASED_VERSIONS = ["v1_0-HD", "v1_0-UHD"]
 
 @cli.command(name="download")
 @click.option('--destination', '--dest', type=click.Path(), prompt='File Destination')
+@click.option('--version', type=click.Choice(RELEASED_VERSIONS), prompt="Dataset Version")
 @click.option('--extract', type=bool, default=False, is_flag=True)
 @click.option('--clean', type=bool, default=False, is_flag=True)
 @click.option('--test-only', type=bool, default=False, is_flag=True)
 @click.option('--remove-archives', type=bool, default=False, is_flag=True)
-def download(destination: Path, extract: bool=False, clean: bool=False, test_only: bool=False, remove_archives: bool=False):
-    download_archives(destination, extract, clean, test_only, remove_archives)
+def download(destination: Path, version: str, extract: bool=False, clean: bool=False, test_only: bool=False, remove_archives: bool=False):
+    download_archives(destination, version, extract, clean, test_only, remove_archives)
 
 ## 'hoot visualize' command for quickly visualizing videos
 from hoot.visualizer import visualize_videos

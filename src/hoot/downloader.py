@@ -23,9 +23,9 @@ class Downloader:
 
     def download_metadata(self) -> dict:
         #fetch metadata json
-        response = requests.get(self.host_url + '/metadata.json')
-        assert response.status_code == HTTPStatus.OK
-        assert response.headers['Content-Type'] == 'application/json'
+        breakpoint()
+        response = requests.get(self.host_url + 'metadata.json')
+        assert response.status_code == HTTPStatus.OK, f'Service returned error {response.status_code}'
         return response.json()
 
     def download_url(self, url: str, directory: Path, zip_size: int, clean):
@@ -57,18 +57,19 @@ class Downloader:
     def download_additional_files(self, files: List[str], dest: Path):
         for f in files:
             response = requests.get(self.host_url + f)
-            assert response.status_code == HTTPStatus.OK
-            assert response.headers['Content-Type'] == 'text/plain'
+            assert response.status_code == HTTPStatus.OK, f'Service returned error {response.status_code}'
             with open(dest.joinpath(f), 'w') as fw:
                 fw.write(response.text)
 
-def download_archives(destination: Path, extract: bool=False, clean: bool=False, test_only: bool=False, remove_archives: bool=False):
+def download_archives(destination: Path, version: str, extract: bool=False, clean: bool=False, test_only: bool=False, remove_archives: bool=False):
     ## Create dest dir if it doesn't already exist
     dest = Path(destination)
     dest.mkdir(exist_ok=True)
 
-    host_url = 'http://localhost:8080/'
-    dl = Downloader(host_url)
+    base_url = 'http://ilab.usc.edu/hoot/'
+    version_folder, quality = version.split("-")
+    download_url = f'{base_url}{version_folder}/{quality}/'
+    dl = Downloader(download_url)
     ## Fetch the latest metadata
     metadata = load_from_json(dl.download_metadata())
 

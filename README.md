@@ -33,13 +33,14 @@
    
    ```sh
    hoot download --dest /path/to/hoot 
+                 --version v1_0-HD  ## dataset version (HD by default)
                  --test-only        ## downloads only test split
                  --clean            ## overwrites already downloaded zips
                  --extract          ## extracts zips after download
                  --remove-archives  ## deletes the zip file after extraction to clean up space
    ```
 
-To download any specific subset of HOOT that includes specific properties (e.g. only videos with semi-transparent occluders), consider writing a quick filter (check `src/hoot/downloader.py:87`) to do so before you run the above command. 
+To download any specific subset of HOOT that includes specific properties (e.g. only videos with semi-transparent occluders), consider writing a quick filter (check `src/hoot/downloader.py:89`) to do so before you run the above command. 
 
 ## Visualize HOOT
    
@@ -49,7 +50,7 @@ To download any specific subset of HOOT that includes specific properties (e.g. 
                   --video apple-003 ## to visualize a specific video 
    ```
 
-To download any specific subset of HOOT that includes specific properties (e.g. only videos with semi-transparent occluders), consider writing a quick filter (check `src/hoot/downloader.py:87`) to do so before you run the above command.
+   Directory to save (`--dest`) is optional, as well as the video (`--video`). If not given a specific video, the `visualize` command will visualize all videos in the dataset.
 
 ## Usage of make-archive
    
