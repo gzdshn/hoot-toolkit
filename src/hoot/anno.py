@@ -9,7 +9,6 @@ from typing import List, Union
 from types import SimpleNamespace
 from typing import List, Union, Optional, Tuple
 from pycocotools import mask
-import attrs
 import numpy as np
 from pathlib import Path
 

@@ -23,7 +23,6 @@ class Downloader:
 
     def download_metadata(self) -> dict:
         #fetch metadata json
-        breakpoint()
         response = requests.get(self.host_url + 'metadata.json')
         assert response.status_code == HTTPStatus.OK, f'Service returned error {response.status_code}'
         return response.json()

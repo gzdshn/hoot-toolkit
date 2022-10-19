@@ -3,20 +3,26 @@
 1. Clone the repo from github
    ```sh
    git clone https://github.com/gzdshn/hoot-toolkit.git
-   cd hoot-toolkit
    ```
-2. Create a conda environment using the given environment
+2. Setup your environment:
+
+   _If you're installing `hoot-toolkit` in an existing conda environment for your project, skip to step 4._
+
+   To create a new conda environment using the provided `environment.yml` file
    ```sh
-   conda env create -f environment.yml
+   conda env create -n my-hoot-env -f hoot-toolkit/environment.yml
    ```
-3. Enter the virtual environment
+
+3. Enter your conda environment
    ```sh
-   conda activate hoot-toolkit
+   conda activate my-hoot-env
    ```
-4. Install the hoot-toolkit CLI
+4. Install the `hoot-toolkit` CLI
    ```sh
-   pip install -e ./
+   pip install hoot-toolkit/
    ```
+   If you would like to edit the `hoot-toolkit` code, use the editable pip install option (`-e`) above.
+
 
 ## Getting Started
 
