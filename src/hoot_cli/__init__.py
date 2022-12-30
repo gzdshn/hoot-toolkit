@@ -35,6 +35,18 @@ RELEASED_VERSIONS = ["v1_0-HD", "v1_0-UHD"]
 def download(destination: Path, version: str, extract: bool=False, clean: bool=False, test_only: bool=False, remove_archives: bool=False):
     download_archives(destination, version, extract, clean, test_only, remove_archives)
 
+from hoot.downloader import verify_archives
+@cli.command(name="verify")
+@click.option('--directory', '--dir', type=click.Path(), prompt='Data directory')
+@click.option('--version', type=click.Choice(RELEASED_VERSIONS), prompt="Dataset Version")
+def verify(directory: Path, version: str):
+    '''Prints class-video paths that are INVALID for the selected data version.'''
+    invalid_paths = verify_archives(directory, version)
+    for p in invalid_paths:
+        print(p)
+
+#TODO: add a repair_archive function
+
 ## 'hoot visualize' command for quickly visualizing videos
 from hoot.visualizer import visualize_videos
 

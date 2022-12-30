@@ -21,7 +21,7 @@ import zipfile
 import os
 from pathlib import Path
 import zipfile
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Tuple
 
 class PackageInfo(NamedTuple):
     id: str
@@ -57,7 +57,30 @@ def package_folder(id: str, directory: Path, zip_output: Path, allowed_file_type
                     data_size += len(chunk)
                     zip_stream.write(chunk)
 
-            # print(os.path.join(root, name))
-            #break #TODO: returning after 1 file for quick testing
-
     return PackageInfo(id, data_size, data_hash.hexdigest(), zip_output)
+
+
+
+def hash_folder(directory: Path) -> Tuple[int, str]:
+    '''
+    Walks a directory alphabetically and builds a hash digest - used for confirming data integrity
+    Hash digest includes utf-8 encoded filenames (eg. "0001.png")
+    returns: size in bytes, hash str
+    '''
+
+    data_size = 0
+    data_hash = hashlib.sha256()
+
+    for root, dirs, files in os.walk(directory, topdown=True, followlinks=False):
+        #breakpoint()
+        for name in sorted(files):
+            #include the file name in the hash
+            data_hash.update(name.encode('utf-8'))
+
+            # hash and write to zip using the same read stream
+            with open(os.path.join(root, name), "rb") as f:
+                for chunk in iter(lambda: f.read(16384), b""):
+                    data_hash.update(chunk)
+                    data_size += len(chunk)
+
+    return (data_size, data_hash.hexdigest())

@@ -16,6 +16,8 @@ import shutil
 from hoot.metadata import load_from_json
 from typing import List
 
+base_url = 'http://ilab.usc.edu/hoot/'
+
 ## Downloader class 
 class Downloader:
     def __init__(self, host_url: str) -> None:
@@ -65,7 +67,6 @@ def download_archives(destination: Path, version: str, extract: bool=False, clea
     dest = Path(destination)
     dest.mkdir(exist_ok=True)
 
-    base_url = 'http://ilab.usc.edu/hoot/'
     version_folder, quality = version.split("-")
     download_url = f'{base_url}{version_folder}/{quality}/'
     dl = Downloader(download_url)
@@ -112,3 +113,52 @@ def download_archives(destination: Path, version: str, extract: bool=False, clea
             ## If remove_archives is set, delete the zip file from the class folder
             if remove_archives and os.path.isfile(zip_path):
                 os.remove(zip_path)
+
+from hoot.utils import hash_folder
+def verify_archives(directory: Path, version: str) -> List[Path]:
+    # returns a list of each video_dir that is invalid
+    
+    directory = Path(directory) #ensure it's a Path
+    assert directory.exists()
+    
+    ## Fetch the latest metadata
+    version_folder, quality = version.split("-")
+    download_url = f'{base_url}{version_folder}/{quality}/'
+    dl = Downloader(download_url)
+    metadata = load_from_json(dl.download_metadata())
+
+    #for each folderset on disk, verify data against the metadata.json
+    #videos might be in 'test-only' mode or filtered some other way - assume videos present are intention
+    invalid_videos = []
+    for class_dir in directory.iterdir():
+        if class_dir.is_dir() == False:
+            continue
+
+        #find class metadata
+        class_metadata = None
+        for c in metadata.classes:
+            if c.name == class_dir.name:
+                class_metadata = c
+                break
+        if class_metadata is None:
+            continue
+        
+
+        for video_dir in class_dir.iterdir():
+            if video_dir.is_dir() == False:
+                continue
+
+            #find video metadata
+            video_metadata = None
+            for v in class_metadata.videos:
+                if v.id == video_dir.name:
+                    video_metadata = v
+                    break
+            if video_metadata is None:
+                continue
+
+            install_size, sha256 = hash_folder(video_dir)
+            if video_metadata.install_size != install_size or video_metadata.sha256 != sha256:
+                invalid_videos.append(video_dir)
+                
+    return invalid_videos    
