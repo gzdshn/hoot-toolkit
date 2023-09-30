@@ -57,6 +57,20 @@ from hoot.visualizer import visualize_videos
 def launch_visualizer(directory: str, output: Optional[str], video: Optional[str]):
     visualize_videos(directory, output, video)           
 
+## 'hoot evaluate' command for evaluation of results
+from hoot.evaluator import evaluate_results
+
+@cli.command(name='evaluate')
+@click.option('--directory', '--hoot', type=click.Path(), prompt='Hoot Directory')
+@click.option('--results', '--results', type=click.Path(), prompt='Results Directory')
+@click.option('--output', '--dest', type=click.Path(), default=None)
+@click.option('--trackers', type=str, default=None)
+@click.option('--clear-cache', type=bool, default=False, is_flag=True)
+@click.option('--test-only', type=bool, default=False, is_flag=True)
+@click.option('--attributes', type=str, default=None)
+def launch_evaluator(directory: Path, results: Path, output: Optional[Path], trackers: Optional[str], clear_cache: bool, attributes: Optional[str], test_only: bool=False):
+    evaluate_results(directory, results, output, trackers, clear_cache, attributes, test_only)  
+
 ## 'hoot test-server' command for local DL testing
 from hoot.test_server import start_local_server
 @cli.command(name='test-server')

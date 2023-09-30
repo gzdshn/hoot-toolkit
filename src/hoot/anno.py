@@ -3,7 +3,7 @@
 ## Provides tools to load binary masks from encoded COCO RLE format
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from dacite import from_dict
 from typing import List, Union
 from types import SimpleNamespace
@@ -11,6 +11,8 @@ from typing import List, Union, Optional, Tuple
 from pycocotools import mask
 import numpy as np
 from pathlib import Path
+import cv2
+import numpy as np
 
 ## Occlusion tags class, provides a mapping from attr to str
 class OcclusionTags(SimpleNamespace):
@@ -84,6 +86,16 @@ class OcclusionMasks:
             else:
                 assert False, 'unrecognized occ_type'
 
+## Occlusion Masks class that holds all occlusion masks for a frame
+## If a certain type of occluder does not exists for the frame, stores empty list
+## Provides get_masks fn to return masks for a given list of occ. types
+@dataclass
+class OcclusionPercentages:
+    all: float = 0.0
+    s: float = 0.0
+    sp: float = 0.0
+    st: float = 0.0
+    t: float = 0.0
 
 ## Frame Attributes class which holds frame-level occlusion attributes 
 @dataclass
@@ -102,14 +114,20 @@ AxisAlignedBoundingBox = List[List[float]]
 class Frame:
     frame_id: int
     frame_path: str ## "path/to/hoot/class/video/padded_frame_id.png"
-    rot_bb: RotatedBoundingBox
-    aa_bb: AxisAlignedBoundingBox
+    rot_bb: RotatedBoundingBox ## empty list [] if absent == true
+    aa_bb: AxisAlignedBoundingBox ## empty list [] if absent == true
     occ_masks: OcclusionMasks
     attributes: FrameAttributes
+    width: Optional[int]
+    height: Optional[int]
+    occ_percentages: Optional[OcclusionPercentages] = None
 
     ## Function to compute an x,y,w,h style box from aa_bb (polygon points)
     @property
     def to_xywh(self) -> List[float]:
+        if not self.aa_bb:
+            #print("Absent: " + str(self.attributes.absent))
+            return [0, 0, 0, 0]
         min_x = min([pt[0] for pt in self.aa_bb])
         min_y = min([pt[1] for pt in self.aa_bb])
         max_x = max([pt[0] for pt in self.aa_bb])
@@ -118,6 +136,51 @@ class Frame:
         h = max_y - min_y
         return [min_x, min_y, w, h]
 
+    @property
+    def occluded(self) -> bool:
+        if self.attributes.absent or \
+           self.attributes.cut_by_frame or \
+           self.attributes.full_occlusion or \
+           self.attributes.partial_obj_occlusion or \
+           self.attributes.similar_occluder:
+           return True
+        return False
+
+    @property
+    def occ_types(self) -> str:
+        types = []
+        if self.occ_masks.s:
+            types.append("s")
+        if self.occ_masks.sp:
+            types.append("sp")
+        if self.occ_masks.st:
+            types.append("st")
+        if self.occ_masks.t:
+            types.append("t")
+        if types:
+            return "_".join(types)
+        else:
+            return ""
+
+    def compute_occ_percentages(self) -> None:
+        if self.occ_percentages is None:
+            self.occ_percentages = OcclusionPercentages()
+            if self.attributes.absent:
+                return
+
+            tgt_mask = np.zeros((self.height, self.width), dtype="uint8")
+            cv2.fillPoly(tgt_mask, pts = [np.array(self.rot_bb, np.int32)], color=(255,255,255))
+            tgt_mask_size = np.count_nonzero(tgt_mask)
+
+            for occ_attr in fields(OcclusionMasks):
+                occ_mask_obj = getattr(self.occ_masks, occ_attr.name)
+                if occ_mask_obj:
+                    ## TODO: assert mask size
+                    occ_mask_size = np.count_nonzero(occ_mask_obj.mask)
+                    occ_percentage = occ_mask_size / float(tgt_mask_size)
+                    setattr(self.occ_percentages, occ_attr.name, occ_percentage)
+            return
+            
 ## Video class that hold video key, path and a list of frame objects, as well as other video data
 @dataclass
 class Video:
@@ -136,6 +199,21 @@ class Video:
     ## Makes sure frames are sorted by id - in case json read/write messed it up
     def __post_init__(self):
         self.frames.sort(key=lambda f: f.frame_id)
+        for f in self.frames:
+            f.width = self.width
+            f.height = self.height
+
+    ## Computes and returns evaluation data
+    @property
+    def get_evaluation_data(self):
+        gt_bb, gt_oof, gt_oov = [], [], []
+        for frame in self.frames:
+            absent = 1 if frame.attributes.absent else 0
+            full_occ = 1 if frame.attributes.full_occlusion else 0
+            gt_oov.append(full_occ)
+            gt_oof.append(absent)
+            gt_bb.append(frame.to_xywh) ## in [xmin, ymin, w, h] format
+        return gt_bb, gt_oof, gt_oov
 
     ## Computes video-level occlusion tags from frame tags
     ## e.g. if any frame is video has solid occluder, it gets added to video tags
