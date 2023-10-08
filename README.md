@@ -1,3 +1,21 @@
+# HOOT Benchmark Official Toolkit
+
+This is the official toolkit for HOOT: Heavy Occlusions for Object Tracking Benchmark, which focuses on single-object tracking under heavy occlusions. The benchmark provides dense occlusions annotations such as frame-lavel occlusion labels and occluder masks, as well as occluder types for each mask.
+
+![HOOT intro](intro.jpg)
+
+If you use the HOOT Benchmark or the toolkit for a research publication, please cite our paper:
+
+```Bibtex
+@inproceedings{sahin2023hoot,
+  title={HOOT: Heavy Occlusions in Object Tracking Benchmark},
+  author={Sahin, Gozde and Itti, Laurent},
+  booktitle={Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision},
+  pages={4830--4839},
+  year={2023}
+}
+```
+
 ## Installation
 
 1. Clone the repo from github
