@@ -35,11 +35,6 @@ If you use the HOOT Benchmark or the toolkit for a research publication, please 
    ```sh
    conda activate my-hoot-env
    ```
-4. Install the `hoot-toolkit` CLI
-   ```sh
-   pip install hoot-toolkit/
-   ```
-   If you would like to edit the `hoot-toolkit` code, use the editable pip install option (`-e`) above.
 
 
 ## Getting Started

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hoot-toolkit"
+version = "1.0.1"
+description = "Official toolkit for the HOOT (Heavy Occlusions in Object Tracking) benchmark"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Gözde Şahin" },
+    { name = "Laurent Itti" },
+]
+dependencies = [
+    "click>=8.0.0",
+    "requests>=2.27.0",
+    "tqdm==4.64.0",
+    "dacite==1.6.0",
+    "pycocotools==2.0.11",
+    "opencv-python==4.13.0.*",
+]
+
+[project.urls]
+Homepage = "https://github.com/gzdshn/hoot-toolkit"
+
+[project.scripts]
+hoot = "hoot_cli:cli"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
