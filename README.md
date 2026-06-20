@@ -22,13 +22,17 @@ If you use the HOOT Benchmark or the toolkit for a research publication, please 
    ```sh
    git clone https://github.com/gzdshn/hoot-toolkit.git
    ```
-2. Setup your environment:
 
-   _If you're installing `hoot-toolkit` in an existing conda environment for your project, skip to step 4._
+2. Setup your environment:
 
    To create a new conda environment using the provided `environment.yml` file
    ```sh
    conda env create -n my-hoot-env -f hoot-toolkit/environment.yml
+   ```
+
+   _If you're installing `hoot-toolkit` in an existing conda environment for your project:_
+   ```sh
+   pip install hoot-toolkit/
    ```
 
 3. Enter your conda environment
