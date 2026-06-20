@@ -1,4 +1,10 @@
 import re
+import hashlib
+import zipfile
+import os
+from pathlib import Path
+from typing import NamedTuple, List, Tuple
+
 
 valid_class_name_regex = re.compile(r'([a-z]+_)*[a-z]+')
 def validate_class_name(class_name: str) -> bool:
@@ -16,12 +22,7 @@ def validate_version(version: str) -> bool:
         return True
     return False
 
-import hashlib
-import zipfile
-import os
-from pathlib import Path
-import zipfile
-from typing import NamedTuple, List, Tuple
+
 
 class PackageInfo(NamedTuple):
     id: str
@@ -29,7 +30,7 @@ class PackageInfo(NamedTuple):
     sha256: str
     zip_path: str
 
-def package_folder(id: str, directory: Path, zip_output: Path, allowed_file_types: List[str]) -> PackageInfo:
+def package_folder(id: str, directory: str, zip_output: str, allowed_file_types: List[str]) -> PackageInfo:
     '''
     Walks a directory alphabetically and builds a hash digest + zip archive
     Hash digest includes utf-8 encoded filenames (eg. "0001.png")

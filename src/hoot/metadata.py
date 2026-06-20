@@ -1,9 +1,7 @@
 import dataclasses
-from typing import List, MutableSet, Dict
+from typing import List
 import datetime
-from dacite import from_dict
-import json
-import datetime
+from dacite.core import from_dict
 
 ## Occlusion levels class for metadata.json
 @dataclasses.dataclass
@@ -11,7 +9,7 @@ class OcclusionLevels:
     frame_occlusion_level: float
     mean_target_occlusion_level: float
     median_target_occlusion_level: float
-    
+
 ## Video metadata class class for metadata.json
 @dataclasses.dataclass
 class AnnotatedVideo:
@@ -24,7 +22,7 @@ class AnnotatedVideo:
     test_split: bool
     occlusion_levels: OcclusionLevels
     tags: List[str]=dataclasses.field(default_factory=list)
-    
+
 ## Object metadata class that holds a list of videos
 @dataclasses.dataclass
 class TargetClass:

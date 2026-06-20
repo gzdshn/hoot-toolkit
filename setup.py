@@ -10,8 +10,8 @@ setup(
         'requests>=2.27.0',
         'tqdm==4.64.0',
         'dacite==1.6.0',
-        'pycocotools==2.0.5',
-        'opencv-python==4.5.5.*'
+        'pycocotools==2.0.11',
+        'opencv-python==4.13.0.*'
     ],
     entry_points='''
         [console_scripts]

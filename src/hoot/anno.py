@@ -4,10 +4,9 @@
 
 import json
 from dataclasses import dataclass, field
-from dacite import from_dict
-from typing import List, Union
-from types import SimpleNamespace
+from dacite.core import from_dict
 from typing import List, Union, Optional, Tuple
+from types import SimpleNamespace
 from pycocotools import mask
 import numpy as np
 from pathlib import Path
@@ -85,7 +84,7 @@ class OcclusionMasks:
                 assert False, 'unrecognized occ_type'
 
 
-## Frame Attributes class which holds frame-level occlusion attributes 
+## Frame Attributes class which holds frame-level occlusion attributes
 @dataclass
 class FrameAttributes:
     absent: bool
@@ -132,7 +131,7 @@ class Video:
     width: int
     motion_tags: List[str]
     target_tags: List[str]
-    
+
     ## Makes sure frames are sorted by id - in case json read/write messed it up
     def __post_init__(self):
         self.frames.sort(key=lambda f: f.frame_id)
@@ -211,7 +210,7 @@ def load_tags_from_metadata(meta_data) -> Tuple[List[str], List[str]]:
         motion_tags.append(MotionTags.dynamic)
     if meta_data['video_tags'][MotionTags.camera_motion]:
         motion_tags.append(MotionTags.camera_motion)
-    
+
     if meta_data['video_tags'][TargetTags.animate]:
         target_tags.append(TargetTags.animate)
     if meta_data['video_tags'][TargetTags.deformable]:

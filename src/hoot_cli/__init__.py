@@ -1,7 +1,11 @@
-import dataclasses
 import click
 from pathlib import Path
-import json
+
+from typing import Optional
+from hoot.archiver import make_archive
+from hoot.downloader import download_archives, verify_archives
+from hoot.visualizer import visualize_videos
+from hoot.test_server import start_local_server
 
 @click.group()
 def cli():
@@ -9,8 +13,7 @@ def cli():
 
 
 ## 'hoot make-archive' CLI command
-from typing import Optional
-from hoot.archiver import make_archive
+
 
 @cli.command(name='make-archive')
 @click.option('--directory', '--dir', type=click.Path(), prompt='Hoot Directory To Archive')
@@ -22,7 +25,7 @@ def launch_make_archive(directory: str, destination: str, version: str, threads:
     make_archive(directory, destination, version, threads, clean)
 
 ## 'hoot download' CLI command
-from hoot.downloader import download_archives
+
 RELEASED_VERSIONS = ["v1_0-HD", "v1_0-UHD"]
 
 @cli.command(name="download")
@@ -35,30 +38,31 @@ RELEASED_VERSIONS = ["v1_0-HD", "v1_0-UHD"]
 def download(destination: Path, version: str, extract: bool=False, clean: bool=False, test_only: bool=False, remove_archives: bool=False):
     download_archives(destination, version, extract, clean, test_only, remove_archives)
 
-from hoot.downloader import verify_archives
+
 @cli.command(name="verify")
 @click.option('--directory', '--dir', type=click.Path(), prompt='Data directory')
 @click.option('--version', type=click.Choice(RELEASED_VERSIONS), prompt="Dataset Version")
 def verify(directory: Path, version: str):
     '''Prints class-video paths that are INVALID for the selected data version.'''
     invalid_paths = verify_archives(directory, version)
-    for p in invalid_paths:
-        print(p)
+
+    if len(invalid_paths) > 0:
+        for p in invalid_paths:
+            print(p)
+    else:
+        print('all class-video valid')
 
 #TODO: add a repair_archive function
 
 ## 'hoot visualize' command for quickly visualizing videos
-from hoot.visualizer import visualize_videos
-
 @cli.command(name='visualize')
 @click.option('--directory', '--dir', type=click.Path(), prompt='Hoot Directory')
 @click.option('--output', '--dest', type=click.Path(), default=None)
 @click.option('--video', type=str, default=None)
 def launch_visualizer(directory: str, output: Optional[str], video: Optional[str]):
-    visualize_videos(directory, output, video)           
+    visualize_videos(directory, output, video)
 
 ## 'hoot test-server' command for local DL testing
-from hoot.test_server import start_local_server
 @cli.command(name='test-server')
 @click.option('--directory', '--dir', type=click.Path(), prompt='Hoot Archive to Host')
 @click.option('--port', type=int, default=8080)

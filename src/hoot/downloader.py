@@ -1,38 +1,54 @@
-
 # Full datasets are broken into different versions and image_qualities
 # Each combination is given a separate URL
 # eg.   version = 1.0, 1.1, 1.2, 2.0
 #       image_quality = HD, UHD
 #       host_url = https://data.hootbenchmark.org/HOOT_v1/HD/
 
-import requests
-import json
-from http import HTTPStatus
-from pathlib import Path
-import zipfile
-from tqdm import tqdm
 import os
 import shutil
-from hoot.metadata import load_from_json
+import zipfile
+from http import HTTPStatus
+from pathlib import Path
 from typing import List
 
-base_url = 'http://ilab.usc.edu/hoot/'
+import requests
+from tqdm import tqdm
 
-## Downloader class 
+from hoot.metadata import HootDataset, load_from_json
+from hoot.utils import hash_folder
+
+ilab_source_url = "http://ilab.usc.edu/hoot/"
+cloudflare_source_url = "https://data.hootbenchmark.org/"
+
+# NOTE: uhd data is about 3.7TB and only available via USC
+uhd_source_urls = [ilab_source_url]
+
+hd_source_urls = [cloudflare_source_url, ilab_source_url]
+
+
+## Downloader class
 class Downloader:
     def __init__(self, host_url: str) -> None:
         self.host_url = host_url
 
-    def download_metadata(self) -> dict:
-        #fetch metadata json
-        response = requests.get(self.host_url + 'metadata.json')
-        assert response.status_code == HTTPStatus.OK, f'Service returned error {response.status_code}'
-        return response.json()
+        # fetch metadata json
+        response = requests.get(self.host_url + "metadata.json")
+        assert response.status_code == HTTPStatus.OK, (
+            f"Service returned error {response.status_code}"
+        )
+        metadata_dict = response.json()
+        metadata = load_from_json(metadata_dict)
+        assert metadata is not None, 'could not load metadata from json response'
+        self.metadata: HootDataset = metadata
+
+    def get_metadata(self) -> HootDataset:
+        assert self.metadata is not None
+        return self.metadata
 
     def download_url(self, url: str, directory: Path, zip_size: int, clean):
-        
+
         local_filepath = directory.joinpath(Path(url).name)
-        tmp_local_filepath = str(local_filepath)+".tmp"
+        tmp_local_filepath = str(local_filepath) + ".tmp"
         ## If not clean, skip if file already exists
         ## Sha would have been checked before movinf from .tmp
         if not clean and os.path.exists(local_filepath):
@@ -41,13 +57,13 @@ class Downloader:
         # NOTE the stream=True parameter below
         with requests.get(self.host_url + url, stream=True) as r:
             r.raise_for_status()
-            with open(tmp_local_filepath, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192): 
+            with open(tmp_local_filepath, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
                     # If you have chunk encoded response uncomment if
                     # and set chunk_size parameter to None.
-                    #if chunk: 
+                    # if chunk:
                     f.write(chunk)
-        
+
         ## Check with zip size, if correct, move from .tmp
         new_zip_size = os.path.getsize(tmp_local_filepath)
         if new_zip_size == zip_size:
@@ -58,21 +74,48 @@ class Downloader:
     def download_additional_files(self, files: List[str], dest: Path):
         for f in files:
             response = requests.get(self.host_url + f)
-            assert response.status_code == HTTPStatus.OK, f'Service returned error {response.status_code}'
-            with open(dest.joinpath(f), 'w') as fw:
+            assert response.status_code == HTTPStatus.OK, (
+                f"Service returned error {response.status_code}"
+            )
+            with open(dest.joinpath(f), "w") as fw:
                 fw.write(response.text)
 
-def download_archives(destination: Path, version: str, extract: bool=False, clean: bool=False, test_only: bool=False, remove_archives: bool=False):
+
+def create_downloader(version_folder: str, quality: str) -> Downloader:
+    dl = None
+    download_url = ''
+    source_urls = uhd_source_urls if quality == "UHD" else hd_source_urls
+    for source_url in source_urls:
+        try:
+            download_url = f"{source_url}{version_folder}/{quality}/"
+            print(f"attempting download from {download_url}")
+            # create downloader and fetch metadata
+            dl = Downloader(download_url)
+            break
+
+        except Exception as e:
+            print(f"could not download from {download_url}; {e}")
+            dl = None
+
+    assert dl is not None
+    return dl
+
+def download_archives(
+    destination: Path,
+    version: str,
+    extract: bool = False,
+    clean: bool = False,
+    test_only: bool = False,
+    remove_archives: bool = False,
+):
     ## Create dest dir if it doesn't already exist
     dest = Path(destination)
     dest.mkdir(exist_ok=True)
 
     version_folder, quality = version.split("-")
-    download_url = f'{base_url}{version_folder}/{quality}/'
-    dl = Downloader(download_url)
-    ## Fetch the latest metadata
-    metadata = load_from_json(dl.download_metadata())
 
+    dl = create_downloader(version_folder, quality)
+    metadata = dl.get_metadata()
     ## Download license, test.txt, train.txt
     dl.download_additional_files(metadata.additional_files, dest)
 
@@ -94,47 +137,49 @@ def download_archives(destination: Path, version: str, extract: bool=False, clea
 
     ## Download videos
     ## If clean is set, the video is skipped if it's already downloaded
-    for class_dir, v in tqdm(to_download, desc = "Downloading videos..."):
+    for class_dir, v in tqdm(to_download, desc="Downloading videos..."):
         dl.download_url(v.path, class_dir, v.download_size, clean)
-    
+
     ## Extract zip archives
     if extract:
-        for class_dir, v in tqdm(to_download, desc = "Extracting zip files..."):
+        for class_dir, v in tqdm(to_download, desc="Extracting zip files..."):
             ## Setup paths
             v_zip_path = v.path
             zip_path = dest.joinpath(v_zip_path)
             v_folder = class_dir.joinpath(v.id)
             v_folder.mkdir(exist_ok=True)
-            
+
             ## Extract zip
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            with zipfile.ZipFile(zip_path, "r") as zip_ref:
                 zip_ref.extractall(v_folder)
 
             ## If remove_archives is set, delete the zip file from the class folder
             if remove_archives and os.path.isfile(zip_path):
                 os.remove(zip_path)
 
-from hoot.utils import hash_folder
+
+
+
+
 def verify_archives(directory: Path, version: str) -> List[Path]:
     # returns a list of each video_dir that is invalid
-    
-    directory = Path(directory) #ensure it's a Path
+
+    directory = Path(directory)  # ensure it's a Path
     assert directory.exists()
-    
+
     ## Fetch the latest metadata
     version_folder, quality = version.split("-")
-    download_url = f'{base_url}{version_folder}/{quality}/'
-    dl = Downloader(download_url)
-    metadata = load_from_json(dl.download_metadata())
+    dl = create_downloader(version_folder, quality)
+    metadata = dl.get_metadata()
 
-    #for each folderset on disk, verify data against the metadata.json
-    #videos might be in 'test-only' mode or filtered some other way - assume videos present are intention
+    # for each folderset on disk, verify data against the metadata.json
+    # videos might be in 'test-only' mode or filtered some other way - assume videos present are intention
     invalid_videos = []
     for class_dir in directory.iterdir():
-        if class_dir.is_dir() == False:
+        if not class_dir.is_dir():
             continue
 
-        #find class metadata
+        # find class metadata
         class_metadata = None
         for c in metadata.classes:
             if c.name == class_dir.name:
@@ -142,13 +187,12 @@ def verify_archives(directory: Path, version: str) -> List[Path]:
                 break
         if class_metadata is None:
             continue
-        
 
         for video_dir in class_dir.iterdir():
-            if video_dir.is_dir() == False:
+            if not video_dir.is_dir():
                 continue
 
-            #find video metadata
+            # find video metadata
             video_metadata = None
             for v in class_metadata.videos:
                 if v.id == video_dir.name:
@@ -158,7 +202,10 @@ def verify_archives(directory: Path, version: str) -> List[Path]:
                 continue
 
             install_size, sha256 = hash_folder(video_dir)
-            if video_metadata.install_size != install_size or video_metadata.sha256 != sha256:
+            if (
+                video_metadata.install_size != install_size
+                or video_metadata.sha256 != sha256
+            ):
                 invalid_videos.append(video_dir)
-                
-    return invalid_videos    
+
+    return invalid_videos

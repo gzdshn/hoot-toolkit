@@ -1,14 +1,12 @@
 import shutil
-import multiprocessing
 import dataclasses
 from tqdm import tqdm
-from typing import Optional, NamedTuple, Tuple, List
+from typing import Optional, NamedTuple
 from pathlib import Path
 import json
-import pickle
 import re
 import os
-from hoot.anno import load_video_from_file, OcclusionMasks, OcclusionTags, MotionTags
+from hoot.anno import load_video_from_file
 
 from hoot.utils import package_folder, validate_class_name, PackageInfo
 from hoot.metadata import HootDataset, TargetClass, AnnotatedVideo, OcclusionLevels
@@ -43,7 +41,7 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
 
         Once all the zips and result_caches are built, make_archive will assemble all the metadata
     '''
-    
+
     # handle directories
     dir = Path(directory)
     dest = Path(destination)
@@ -59,7 +57,7 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
     hoot_files = [f for f in sorted(dir.iterdir()) if f.is_file()]
     test_video_keys = set()
     for f in hoot_files:
-        if f.name.endswith('.txt') == False:
+        if not f.name.endswith('.txt'):
             continue
         # print(f, dest.joinpath(f.name))
         shutil.copy(f, dest.joinpath(f.name))
@@ -78,10 +76,10 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
         dest_class_dir.mkdir(exist_ok=True)
 
         frame_sets = [d for d in sorted(class_dir.iterdir()) if d.is_dir()]
-        frame_set_caches = [c for c in sorted(class_dir.iterdir()) if c.name.startswith(f'.hoot.')]
+        frame_set_caches = [c for c in sorted(class_dir.iterdir()) if c.name.startswith('.hoot.')]
         print(frame_set_caches)
         for frame_set in tqdm(frame_sets, desc='zipping videos'):
-            
+
             #check frame_set_caches
             has_cache = False
             for c in frame_set_caches:
@@ -89,11 +87,11 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
                     has_cache = True
                     print(f'found cache file: {clean} {c}')
                     break
-            if has_cache and clean == False:
+            if not has_cache and clean:
                 continue
-            
+
             # zip package and write hidden '.hoot.*...' result cache file
-            result = package_folder(frame_set.name, frame_set, dest_class_dir.joinpath(f'{frame_set.name}.zip'), allowed_file_types)
+            result = package_folder(frame_set.name, str(frame_set), str(dest_class_dir.joinpath(f'{frame_set.name}.zip')), list(allowed_file_types))
             dest_class_dir.joinpath(f'.hoot.{class_dir.name}.{frame_set.name}.{result.sha256}.{result.original_size}').touch()
 
 
@@ -119,7 +117,7 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
                     result_cache = c
                     break
             assert result_cache is not None, f'no result exists for frame_set {frame_set}' + f'\n{frame_set_caches}'
-            
+
             #parse result cache - read id, sha256, size, zip_size
             match_result = re.match(r'\.hoot\..+\.(\d+)\.([0-9a-f]{64})\.(\d+)', result_cache.name)
             assert match_result is not None
@@ -147,7 +145,7 @@ def make_archive(directory: str, destination: str, version: str, threads: Option
                 ),
                 tags=video_data.occlusion_tags
             ))
-    
+
 
     # render dataclasses to json
     with open(dest.joinpath('metadata.json'), 'w') as f:
