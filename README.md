@@ -43,6 +43,9 @@ If you use the HOOT Benchmark or the toolkit for a research publication, please 
 
 ## Getting Started
 
+> [NOTE!] 
+> before using hoot in windows, turn off the smart app control.
+
 1. View the CLI command listing
    ```sh
    hoot --help
